@@ -6,8 +6,6 @@ import {
   useRecordIds,
   ConfirmationDialog,
   Box,
-  Text,
-  Label,
 } from '@airtable/blocks/ui';
 
 import React, { useState } from 'react';
@@ -16,22 +14,50 @@ function CleanUpBlock() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const base = useBase();
 
+  // totals base records and picks progress bar color
+
+  let lengthArray = [];
+  const baseRecords = base.tables.forEach((table) => {
+    let recordIds = useRecordIds(table);
+    let tableSums = recordIds.length;
+    lengthArray.push(tableSums);
+  });
+  const baseRecordSum = (arr) => arr.reduce((a, b) => a + b, 0);
+  let total = baseRecordSum(lengthArray);
+  let baseProgress = total / 100000;
+  let roundedBaseProgress = baseProgress.toFixed(4);
+  let baseColor;
+  if (baseProgress < 0.5) {
+    baseColor = '#006600';
+  } else if (baseProgress < 0.8) {
+    baseColor = '#ff9933';
+  } else {
+    baseColor = '#ff3333';
+  }
+
+  // maps each table and their progress bars
+
   const tables = base.tables.map((table) => {
-    const recordIds = useRecordIds(table);
+    // eslint-disable-next-line
+    let recordIds = useRecordIds(table);
     let progress = recordIds.length / 50000;
+    let roundedProgress = progress.toFixed(4);
     let color;
     if (progress < 0.5) {
-      color = 'green';
+      color = '#006600';
     } else if (progress < 0.8) {
-      color = 'orange';
+      color = '#ff9933';
     } else {
-      color = 'red';
+      color = '#ff3333';
     }
 
     return (
       <li style={{ paddingBottom: '1rem' }} key={table.id}>
-            {table.name + ': '}
-            <span style={{ fontWeight: 'bold' }}>{progress * 100 + '%'}</span> ({recordIds.length + ' / 50000'})
+        {table.name + ': '}
+        <span style={{ fontWeight: 'bold' }}>
+          {roundedProgress * 100 + '%'}
+        </span>{' '}
+        ({recordIds.length + ' / 50000'})
         <ProgressBar height="1rem" progress={progress} barColor={color} />
       </li>
     );
@@ -41,8 +67,18 @@ function CleanUpBlock() {
     <>
       <div style={{ padding: '1rem' }}>
         <h1 align="center">Clean Up (Base: {base.name})</h1>
-        <h2>Base Records Used</h2>
-        <ProgressBar height="1rem" progress={0.8} barColor="#ff9900" />
+        <h2>Base Records Used {baseRecords}</h2>
+        <p>
+          <span style={{ fontWeight: 'bold' }}>
+            {roundedBaseProgress * 100 + '%'}
+          </span>{' '}
+          ({total + ' / 100000'})
+        </p>
+        <ProgressBar
+          height="1rem"
+          progress={baseProgress}
+          barColor={baseColor}
+        />
         <h2>Table Records Used</h2>
         <ul style={{ listStyleType: 'none', paddingInlineStart: '0px' }}>
           {tables}
