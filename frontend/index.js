@@ -14,7 +14,7 @@ import React, { useState, useEffect } from 'react';
 function CleanUpBlock() {
   // states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [duplicates, setDuplicates] = useState([]);
+  const [duplicates, setDuplicates] = useState(null);
   const [storedTitles, setStoredTitles] = useState([]);
   const [storedPublishedRecords, setStoredPublishedRecords] = useState([]);
 
@@ -41,16 +41,14 @@ function CleanUpBlock() {
       let recordTitle = allRecords[i].getCellValue(editorialTable.primaryField);
       titleArray.push(recordTitle);
     }
-    setStoredTitles(titleArray)
+    setStoredTitles(titleArray);
   }
 
   function findDuplicates(arr) {
     let sorted_arr = arr.slice().sort();
     let results = [];
     for (let i = 0; i < sorted_arr.length - 1; i++) {
-      if (
-        sorted_arr[i + 1] == sorted_arr[i]
-      ) {
+      if (sorted_arr[i + 1] == sorted_arr[i]) {
         results.push(sorted_arr[i]);
       }
     }
@@ -175,12 +173,19 @@ function CleanUpBlock() {
               are no duplicate records taking up any space.
             </p>
           </div>
-          <Button onClick={() => findDuplicates(storedTitles)}>
-            Find Duplicates
-          </Button>
-          <Button onClick={() => console.log(duplicates)}>
-            Show Duplicated
-          </Button>
+          {!duplicates && (
+            <Button onClick={() => findDuplicates(storedTitles)}>
+              Find Duplicates
+            </Button>
+          )}
+          {duplicates && (
+            <>
+              <p>{duplicates.length} Duplicates Found</p>
+              <Button onClick={() => console.log(duplicates)}>
+                Remove Duplicates
+              </Button>
+            </>
+          )}
         </Box>
         <Box
           display="flex"
