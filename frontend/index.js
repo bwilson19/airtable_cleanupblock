@@ -14,7 +14,9 @@ import React, { useState, useEffect } from 'react';
 function CleanUpBlock() {
   // states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [storedRecords, setStoredRecords] = useState([]);
+  const [duplicates, setDuplicates] = useState([]);
+  const [storedTitles, setStoredTitles] = useState([]);
+  const [storedPublishedRecords, setStoredPublishedRecords] = useState([]);
 
   //   global variables
 
@@ -22,15 +24,47 @@ function CleanUpBlock() {
   const editorialTable = base.getTableByName('Editorial');
   const archiveTable = base.getTableByName('Archive');
   const publishedView = editorialTable.getViewByName('Published Pieces');
+  const allRecords = useRecords(editorialTable);
   const publishedRecords = useRecords(publishedView);
 
-//   store records in state
+  //   store records in state
 
   useEffect(() => {
-    setStoredRecords(publishedRecords);
+    setStoredPublishedRecords(publishedRecords);
+    findTitles(allRecords);
   }, []);
 
-//   delete published records after moving to archive
+  // find and store duplicate article records in state
+  function findTitles() {
+    let titleArray = [];
+    for (let i = 0; i < allRecords.length; i++) {
+      let recordTitle = allRecords[i].getCellValue(editorialTable.primaryField);
+      titleArray.push(recordTitle);
+    }
+    setStoredTitles(titleArray)
+  }
+
+  function findDuplicates(arr) {
+    let sorted_arr = arr.slice().sort();
+    let results = [];
+    for (let i = 0; i < sorted_arr.length - 1; i++) {
+      if (
+        sorted_arr[i + 1] == sorted_arr[i]
+      ) {
+        results.push(sorted_arr[i]);
+      }
+    }
+    setDuplicates(results);
+    console.log(results);
+  }
+
+  function archivePublished() {
+    setIsDialogOpen(false);
+    console.log(storedPublishedRecords);
+    // deletePublishedRecords(storedPublishedRecords);
+  }
+
+  //   delete published records after moving to archive
 
   const BATCH_SIZE = 50;
   async function deletePublishedRecords(records) {
@@ -46,8 +80,8 @@ function CleanUpBlock() {
 
   function archivePublished() {
     setIsDialogOpen(false);
-    console.log(storedRecords);
-    // deletePublishedRecords(storedRecords);
+    console.log(storedPublishedRecords);
+    // deletePublishedRecords(storedPublishedRecords);
   }
 
   // totals base records and picks progress bar color
@@ -141,7 +175,12 @@ function CleanUpBlock() {
               are no duplicate records taking up any space.
             </p>
           </div>
-          <Button>Find Duplicates</Button>
+          <Button onClick={() => findDuplicates(storedTitles)}>
+            Find Duplicates
+          </Button>
+          <Button onClick={() => console.log(duplicates)}>
+            Show Duplicated
+          </Button>
         </Box>
         <Box
           display="flex"
