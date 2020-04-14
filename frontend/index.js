@@ -4,20 +4,57 @@ import {
   ProgressBar,
   Button,
   useRecordIds,
+  useRecords,
   ConfirmationDialog,
   Box,
 } from '@airtable/blocks/ui';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function CleanUpBlock() {
+  // states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [storedRecords, setStoredRecords] = useState([]);
+
+  //   global variables
+
   const base = useBase();
+  const editorialTable = base.getTableByName('Editorial');
+  const archiveTable = base.getTableByName('Archive');
+  const publishedView = editorialTable.getViewByName('Published Pieces');
+  const publishedRecords = useRecords(publishedView);
+
+//   store records in state
+
+  useEffect(() => {
+    setStoredRecords(publishedRecords);
+  }, []);
+
+//   delete published records after moving to archive
+
+  const BATCH_SIZE = 50;
+  async function deletePublishedRecords(records) {
+    let i = 0;
+    while (i < records.length) {
+      const recordBatch = records.slice(i, i + BATCH_SIZE);
+      await editorialTable.deleteRecordsAsync(recordBatch);
+      i += BATCH_SIZE;
+    }
+  }
+
+  // select and move published pieces to archive
+
+  function archivePublished() {
+    setIsDialogOpen(false);
+    console.log(storedRecords);
+    // deletePublishedRecords(storedRecords);
+  }
 
   // totals base records and picks progress bar color
 
   let lengthArray = [];
   const baseRecords = base.tables.forEach((table) => {
+    // eslint-disable-next-line
     let recordIds = useRecordIds(table);
     let tableSums = recordIds.length;
     lengthArray.push(tableSums);
@@ -25,7 +62,7 @@ function CleanUpBlock() {
   const baseRecordSum = (arr) => arr.reduce((a, b) => a + b, 0);
   let total = baseRecordSum(lengthArray);
   let baseProgress = total / 100000;
-  let roundedBaseProgress = baseProgress.toFixed(4);
+  let roundedBaseProgress = baseProgress.toFixed(3);
   let baseColor;
   if (baseProgress < 0.5) {
     baseColor = '#006600';
@@ -66,7 +103,9 @@ function CleanUpBlock() {
   return (
     <>
       <div style={{ padding: '1rem' }}>
-        <h1 align="center">Clean Up (Base: {base.name})</h1>
+        <h1 align="center" style={{ textDecoration: 'underline' }}>
+          Clean Up Tool (Base: {base.name})
+        </h1>
         <h2>Base Records Used {baseRecords}</h2>
         <p>
           <span style={{ fontWeight: 'bold' }}>
@@ -118,8 +157,8 @@ function CleanUpBlock() {
           <div>
             <h3>Archive Published Records</h3>
             <p>
-              This option will move all published posts to the &quot;Archived
-              Table&quot;
+              This option will move all published posts to the
+              &quot;Archive&quot; table.
             </p>
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
@@ -128,7 +167,7 @@ function CleanUpBlock() {
               title="Are you sure?"
               body="This action can’t be undone."
               onConfirm={() => {
-                setIsDialogOpen(false);
+                archivePublished();
               }}
               onCancel={() => setIsDialogOpen(false)}
             />
@@ -148,8 +187,8 @@ function CleanUpBlock() {
           <div>
             <h3>Archive Old Records</h3>
             <p>
-              This option will move all published posts to the &quot;Archived
-              Table&quot;
+              This option will move all historical records from 2015 or older to
+              the &quot;Archive&quot; table.
             </p>
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
@@ -158,7 +197,7 @@ function CleanUpBlock() {
               title="Are you sure?"
               body="This action can’t be undone."
               onConfirm={() => {
-                setIsDialogOpen(false);
+                archivePublished();
               }}
               onCancel={() => setIsDialogOpen(false)}
             />
@@ -178,8 +217,10 @@ function CleanUpBlock() {
           <div>
             <h3>Delete Archive</h3>
             <p>
-              This option will move all published posts to the &quot;Archived
-              Table&quot;
+              Removes all records from the &quot;Archive.&quot;&nbsp;
+              <span style={{ fontWeight: 'bold' }}>
+                (Please note: This action cannot be undone)
+              </span>
             </p>
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
@@ -188,7 +229,7 @@ function CleanUpBlock() {
               title="Are you sure?"
               body="This action can’t be undone."
               onConfirm={() => {
-                setIsDialogOpen(false);
+                archivePublished();
               }}
               onCancel={() => setIsDialogOpen(false)}
             />
